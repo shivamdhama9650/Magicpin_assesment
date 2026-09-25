@@ -1,0 +1,39 @@
+name: CI Quality Gate & Vera Test Suite
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate expanded dataset
+        run: |
+          python dataset/generate_dataset.py --seed-dir dataset --out expanded
+
+      - name: Run unit test suite
+        run: |
+          python test_bot.py
+
+      - name: Validate 30-pair benchmark generation
+        run: |
+          python generate_submission.py
+          python -c "assert len(open('submission.jsonl').read().strip().split('\n')) == 30"
