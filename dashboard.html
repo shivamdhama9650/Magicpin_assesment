@@ -3,217 +3,477 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vera Assistant — Mission Control</title>
+  <title>Vera — Service Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
+      --bg: #090a0f;
+      --surface: #12131a;
+      --surface-subtle: #181924;
+      --border: #232533;
+      --border-focus: #3b82f6;
+      --text: #e2e8f0;
+      --text-muted: #848a9e;
+      --accent: #3b82f6;
       --success: #10b981;
-      --wa-bg: #0b141a;
-      --wa-bubble: #005c4b;
-      --wa-incoming: #202c33;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-    .title-group h1 { font-size: 22px; font-weight: 700; color: #fff; }
-    .title-group p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: var(--success); border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
-    
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-    .stat-card .label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat-card .value { font-size: 24px; font-weight: 700; color: #fff; margin-top: 6px; }
-    
-    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
-    
-    .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
-    .panel-header { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
-    
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
-    select, input, textarea { width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 14px; outline: none; }
-    select:focus, input:focus { border-color: var(--primary); }
-    
-    .btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.15s; }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #334155; }
-    .btn-secondary:hover { background: #475569; }
 
-    /* WhatsApp Simulator */
-    .wa-container { background: var(--wa-bg); border: 1px solid var(--border); border-radius: 10px; height: 440px; display: flex; flex-direction: column; overflow: hidden; }
-    .wa-header { background: #202c33; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .wa-avatar { width: 36px; height: 36px; border-radius: 50%; background: #6366f1; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
-    .wa-user-info .name { font-size: 14px; font-weight: 600; color: #e9edef; }
-    .wa-user-info .status { font-size: 11px; color: #8696a0; }
-    .wa-chat { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-    
-    .msg { max-width: 85%; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.45; position: relative; word-wrap: break-word; }
-    .msg-out { background: var(--wa-bubble); color: #e9edef; align-self: flex-start; border-top-left-radius: 0; }
-    .msg-in { background: var(--wa-incoming); color: #e9edef; align-self: flex-end; border-top-right-radius: 0; }
-    .msg-time { font-size: 10px; color: rgba(255,255,255,0.6); text-align: right; margin-top: 4px; }
-    
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .chip { font-size: 11px; padding: 5px 10px; border-radius: 999px; background: #1e293b; border: 1px solid var(--border); cursor: pointer; color: var(--text-muted); transition: 0.15s; }
-    .chip:hover { border-color: var(--primary); color: #fff; }
-    
-    .rationale-card { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
-    .rationale-card strong { color: #e2e8f0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: #fff;
+    }
+
+    .brand span {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--success);
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+    }
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px;
+    }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 960px) {
+      .layout-grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-body {
+      padding: 16px;
+      flex: 1;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      outline: none;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--border-focus);
+    }
+
+    .btn {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      border: 1px solid #1d4ed8;
+      padding: 7px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* Output Console */
+    .terminal-output {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #cbd5e1;
+      min-height: 120px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .meta-item {
+      background: var(--bg);
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .meta-label {
+      color: var(--text-muted);
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+
+    .meta-val {
+      color: #93c5fd;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Conversation Debugger */
+    .convo-history {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      height: 320px;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .convo-msg {
+      max-width: 90%;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .msg-bot {
+      align-self: flex-start;
+      background: #142838;
+      border: 1px solid #1e3a5f;
+      color: #e2e8f0;
+    }
+
+    .msg-user {
+      align-self: flex-end;
+      background: #1c2333;
+      border: 1px solid var(--border);
+      color: #cbd5e1;
+    }
+
+    .msg-tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .input-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .test-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .chip-btn {
+      background: var(--surface-subtle);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .chip-btn:hover {
+      border-color: var(--border-focus);
+      color: var(--text);
+    }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <div class="title-group">
-      <h1>Vera Assistant — Mission Control</h1>
-      <p>magicpin merchant outreach & conversational engine</p>
+  <header>
+    <div class="brand">
+      <h1>VERA SERVICE CONSOLE</h1>
+      <span>v1.0.0 &bull; magicpin merchant outreach</span>
     </div>
-    <div class="badge">
-      <span class="badge-dot"></span>
-      <span id="uptime-text">Live on Port 8080</span>
+    <div class="status-badge">
+      <span class="status-indicator"></span>
+      <span id="sys-uptime">PORT 8080 &bull; OPERATIONAL</span>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-label">Categories</div>
+      <div class="stat-val" id="cnt-categories">5</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Merchants</div>
+      <div class="stat-val" id="cnt-merchants">50</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Customers</div>
+      <div class="stat-val" id="cnt-customers">200</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Triggers Loaded</div>
+      <div class="stat-val" id="cnt-triggers">100</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Avg Latency</div>
+      <div class="stat-val" id="cnt-latency">&lt; 2ms</div>
     </div>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="label">Categories</div>
-      <div class="value" id="count-categories">5</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Merchants</div>
-      <div class="value" id="count-merchants">50</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Customers</div>
-      <div class="value" id="count-customers">200</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Triggers Loaded</div>
-      <div class="value" id="count-triggers">100</div>
-    </div>
-  </div>
-
-  <div class="main-grid">
-    <!-- Simulator Controls -->
-    <div class="panel">
-      <div class="panel-header">
-        <span>Test Message Composer</span>
+  <div class="layout-grid">
+    <!-- Panel 1: Composer & Policy Inspection -->
+    <div class="card">
+      <div class="card-header">
+        <span>Message Composer & Policy Evaluator</span>
+        <span style="color: var(--text-muted); font-size: 10px;">POST /v1/tick</span>
       </div>
-
-      <div class="form-group">
-        <label>Merchant Context</label>
-        <select id="merchant-select">
-          <option value="m_001_drmeera_dentist_delhi">Dr. Meera's Dental Clinic (Dentist - Delhi)</option>
-          <option value="m_006_southindiancafe_restaurant_bangalore">Mylari South Indian Cafe (Restaurant - Bangalore)</option>
-          <option value="m_002_studio11_salon_hyderabad">Studio11 Family Salon (Salon - Hyderabad)</option>
-          <option value="m_008_zenyoga_gym_chennai">Zen Yoga Studio (Gym - Chennai)</option>
-          <option value="m_009_apollo_pharmacy_jaipur">Apollo Health Plus Pharmacy (Pharmacy - Jaipur)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Active Trigger Event</label>
-        <select id="trigger-select">
-          <option value="trg_013_corporate_thali_planning">Corporate Thali Planning (active_planning_intent)</option>
-          <option value="trg_001_research_digest_dentists">JIDA Fluoride Recall Trial (research_digest)</option>
-          <option value="trg_003_recall_due_priya">Priya 6-Month Recall (recall_due - Customer)</option>
-          <option value="trg_002_heatwave_delhi">Heatwave / Summer Demand (seasonal)</option>
-          <option value="trg_023_competitor_opened_dentist">Competitor Opened 1.3km Away (competitor_opened)</option>
-        </select>
-      </div>
-
-      <button class="btn" onclick="simulateTick()" style="margin-top: 6px;">Compose Outbound Message</button>
-
-      <div class="rationale-card" id="rationale-box" style="display: none;">
-        <div><strong>Strategy & Compulsion:</strong> <span id="rationale-text"></span></div>
-        <div style="margin-top: 6px;"><strong>Suppression Key:</strong> <code id="supp-key-text" style="color: #38bdf8;"></code></div>
-      </div>
-
-      <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
-        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px;">Simulate Merchant Response:</label>
-        <div class="chips">
-          <span class="chip" onclick="quickReply('Ok lets do it. Whats next?')">"Ok lets do it. Whats next?" (Commitment)</span>
-          <span class="chip" onclick="quickReply('Yes please send the abstract')">"Yes send the abstract"</span>
-          <span class="chip" onclick="quickReply('Thank you for contacting us! Our team will respond shortly.')">"Thank you for contacting..." (Auto-reply)</span>
-          <span class="chip" onclick="quickReply('Stop messaging me. This is useless spam.')">"Stop messaging me" (Opt-out)</span>
-          <span class="chip" onclick="quickReply('Can you also help me with my GST filing?')">"Help with GST filing" (Curveball)</span>
+      <div class="card-body">
+        <div class="form-group">
+          <label for="merchant-picker">Select Merchant</label>
+          <select id="merchant-picker">
+            <option value="m_001_drmeera_dentist_delhi">Dr. Meera's Dental Clinic (Dentist - Delhi)</option>
+            <option value="m_006_southindiancafe_restaurant_bangalore">Mylari South Indian Cafe (Restaurant - Bangalore)</option>
+            <option value="m_002_studio11_salon_hyderabad">Studio11 Family Salon (Salon - Hyderabad)</option>
+            <option value="m_008_zenyoga_gym_chennai">Zen Yoga Studio (Gym - Chennai)</option>
+            <option value="m_009_apollo_pharmacy_jaipur">Apollo Health Plus Pharmacy (Pharmacy - Jaipur)</option>
+          </select>
         </div>
-      </div>
-    </div>
 
-    <!-- WhatsApp Preview -->
-    <div class="panel">
-      <div class="panel-header">
-        <span>Live Conversation Stream</span>
-      </div>
+        <div class="form-group">
+          <label for="trigger-picker">Select Trigger Event</label>
+          <select id="trigger-picker">
+            <option value="trg_013_corporate_thali_planning">Corporate Thali Planning (active_planning_intent)</option>
+            <option value="trg_001_research_digest_dentists">JIDA Fluoride Recall Trial (research_digest)</option>
+            <option value="trg_003_recall_due_priya">Priya 6-Month Recall (recall_due - Customer)</option>
+            <option value="trg_002_heatwave_delhi">Heatwave Demand Surge (seasonal)</option>
+            <option value="trg_023_competitor_opened_dentist">Competitor Opened 1.3km Away (competitor_opened)</option>
+          </select>
+        </div>
 
-      <div class="wa-container">
-        <div class="wa-header">
-          <div class="wa-avatar">V</div>
-          <div class="wa-user-info">
-            <div class="name" id="wa-merchant-name">Dr. Meera's Dental Clinic</div>
-            <div class="status" id="wa-session-status">24h WhatsApp Session Active</div>
+        <button class="btn" onclick="executeTick()">Run Policy & Compose</button>
+
+        <div class="terminal-output" id="output-body">Select merchant and trigger above, then click 'Run Policy & Compose' to evaluate.</div>
+
+        <div class="meta-row">
+          <div class="meta-item">
+            <div class="meta-label">Suppression Key</div>
+            <div class="meta-val" id="out-supp-key">-</div>
           </div>
-        </div>
-
-        <div class="wa-chat" id="chat-messages">
-          <div class="msg msg-out">
-            <div>Click <strong>"Compose Outbound Message"</strong> to trigger a proactive conversation based on merchant context and active trigger.</div>
-            <div class="msg-time">Just now</div>
+          <div class="meta-item">
+            <div class="meta-label">Selected CTA</div>
+            <div class="meta-val" id="out-cta">-</div>
           </div>
         </div>
       </div>
+    </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <input type="text" id="custom-reply-input" placeholder="Type a custom merchant reply...">
-        <button class="btn btn-secondary" onclick="sendCustomReply()">Send</button>
+    <!-- Panel 2: Conversation State Machine Debugger -->
+    <div class="card">
+      <div class="card-header">
+        <span>State Machine & Reply Debugger</span>
+        <span style="color: var(--text-muted); font-size: 10px;">POST /v1/reply</span>
+      </div>
+      <div class="card-body">
+        <div class="convo-history" id="convo-log">
+          <div class="convo-msg msg-bot">
+            <div class="msg-tag">System</div>
+            <div>Run policy evaluation in left panel or send an incoming merchant reply below.</div>
+          </div>
+        </div>
+
+        <div class="input-bar">
+          <input type="text" id="merchant-input" placeholder="Enter merchant response...">
+          <button class="btn btn-secondary" onclick="submitReply()">Send</button>
+        </div>
+
+        <label style="margin-top: 14px; display: block;">Quick State Machine Injections:</label>
+        <div class="test-chips">
+          <button class="chip-btn" onclick="injectTest('Sounds good, what are next steps?')">Commitment ("Sounds good...")</button>
+          <button class="chip-btn" onclick="injectTest('Thank you for contacting us. We will get back to you shortly.')">Auto-Reply (Loop Breaker)</button>
+          <button class="chip-btn" onclick="injectTest('Stop sending these messages.')">Hostile Opt-Out</button>
+          <button class="chip-btn" onclick="injectTest('How much does this program cost?')">Cost Objection</button>
+          <button class="chip-btn" onclick="injectTest('Can you help with my business loan?')">Out of Scope</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    let currentConvId = "conv_demo_1";
-    let currentMerchantId = "m_001_drmeera_dentist_delhi";
-    let turnCount = 1;
+    let activeConversationId = "conv_seed_" + Date.now();
+    let activeMerchantId = "m_001_drmeera_dentist_delhi";
+    let turnIndex = 1;
 
-    async function loadHealth() {
+    async function refreshHealth() {
       try {
         const res = await fetch('/v1/healthz');
         const data = await res.json();
         if (data.contexts_loaded) {
-          document.getElementById('count-categories').innerText = data.contexts_loaded.category || 5;
-          document.getElementById('count-merchants').innerText = data.contexts_loaded.merchant || 50;
-          document.getElementById('count-customers').innerText = data.contexts_loaded.customer || 200;
-          document.getElementById('count-triggers').innerText = data.contexts_loaded.trigger || 100;
+          document.getElementById('cnt-categories').innerText = data.contexts_loaded.category || 5;
+          document.getElementById('cnt-merchants').innerText = data.contexts_loaded.merchant || 50;
+          document.getElementById('cnt-customers').innerText = data.contexts_loaded.customer || 200;
+          document.getElementById('cnt-triggers').innerText = data.contexts_loaded.trigger || 100;
         }
-        document.getElementById('uptime-text').innerText = `Uptime: ${data.uptime_seconds}s (Operational)`;
-      } catch (e) {
-        console.error(e);
+        document.getElementById('sys-uptime').innerText = `UPTIME: ${data.uptime_seconds}s (HEALTHY)`;
+      } catch (err) {
+        console.error("Health check failed", err);
       }
     }
 
-    async function simulateTick() {
-      const mid = document.getElementById('merchant-select').value;
-      const tid = document.getElementById('trigger-select').value;
-      currentMerchantId = mid;
-      currentConvId = `conv_${mid}_${Date.now() % 10000}`;
-      turnCount = 1;
+    async function executeTick() {
+      const mid = document.getElementById('merchant-picker').value;
+      const tid = document.getElementById('trigger-picker').value;
+      activeMerchantId = mid;
+      activeConversationId = `conv_${mid}_${Date.now() % 10000}`;
+      turnIndex = 1;
 
-      document.getElementById('wa-merchant-name').innerText = document.getElementById('merchant-select').selectedOptions[0].text;
+      const outBody = document.getElementById('output-body');
+      outBody.innerText = "Evaluating trigger eligibility...";
 
-      const chat = document.getElementById('chat-messages');
-      chat.innerHTML = '<div style="text-align: center; font-size: 11px; color: #8696a0; margin: 8px 0;">Evaluating trigger eligibility & composing...</div>';
-
+      const t0 = performance.now();
       try {
         const res = await fetch('/v1/tick', {
           method: 'POST',
@@ -223,81 +483,107 @@
             available_triggers: [tid]
           })
         });
-        const data = await res.json();
+        const duration = (performance.now() - t0).toFixed(1);
+        document.getElementById('cnt-latency').innerText = `${duration}ms`;
 
-        chat.innerHTML = '';
+        const data = await res.json();
         if (data.actions && data.actions.length > 0) {
           const act = data.actions[0];
-          currentConvId = act.conversation_id;
+          activeConversationId = act.conversation_id;
+          outBody.innerText = act.body;
+          document.getElementById('out-supp-key').innerText = act.suppression_key || 'none';
+          document.getElementById('out-cta').innerText = act.cta || 'binary_yes_no';
 
-          const msgEl = document.createElement('div');
-          msgEl.className = 'msg msg-out';
-          msgEl.innerHTML = `<div>${act.body.replace(/\\n/g, '<br>')}</div><div class="msg-time">Vera • Just now</div>`;
-          chat.appendChild(msgEl);
-
-          document.getElementById('rationale-box').style.display = 'block';
-          document.getElementById('rationale-text').innerText = act.rationale || 'Fact-anchored category copy.';
-          document.getElementById('supp-key-text').innerText = act.suppression_key || '';
+          // Reset convo log with first outbound
+          const convo = document.getElementById('convo-log');
+          convo.innerHTML = `
+            <div class="convo-msg msg-bot">
+              <div class="msg-tag">Outbound (Vera) &bull; Turn 1</div>
+              <div>${escapeHtml(act.body).replace(/\\n/g, '<br>')}</div>
+            </div>
+          `;
         } else {
-          chat.innerHTML = '<div class="msg msg-out"><div>Trigger suppressed or filtered by eligibility policy (restraint exercised).</div></div>';
+          outBody.innerText = "Trigger suppressed by policy engine (no outbound action required).";
+          document.getElementById('out-supp-key').innerText = "suppressed";
+          document.getElementById('out-cta').innerText = "-";
         }
-      } catch (e) {
-        chat.innerHTML = `<div class="msg msg-out" style="background: #ef4444;">Error: ${e.message}</div>`;
+      } catch (err) {
+        outBody.innerText = "Error: " + err.message;
       }
     }
 
-    async function quickReply(text) {
-      document.getElementById('custom-reply-input').value = text;
-      sendCustomReply();
+    function injectTest(text) {
+      document.getElementById('merchant-input').value = text;
+      submitReply();
     }
 
-    async function sendCustomReply() {
-      const input = document.getElementById('custom-reply-input');
+    async function submitReply() {
+      const input = document.getElementById('merchant-input');
       const text = input.value.trim();
       if (!text) return;
-      input.value = '';
+      input.value = "";
 
-      const chat = document.getElementById('chat-messages');
-      const userMsg = document.createElement('div');
-      userMsg.className = 'msg msg-in';
-      userMsg.innerHTML = `<div>${text}</div><div class="msg-time">Merchant • Just now</div>`;
-      chat.appendChild(userMsg);
-      chat.scrollTop = chat.scrollHeight;
+      const convo = document.getElementById('convo-log');
+      turnIndex += 1;
 
-      turnCount++;
+      // Append incoming merchant message
+      const userEl = document.createElement('div');
+      userEl.className = 'convo-msg msg-user';
+      userEl.innerHTML = `
+        <div class="msg-tag">Merchant &bull; Turn ${turnIndex}</div>
+        <div>${escapeHtml(text)}</div>
+      `;
+      convo.appendChild(userEl);
+      convo.scrollTop = convo.scrollHeight;
+
+      turnIndex += 1;
 
       try {
         const res = await fetch('/v1/reply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            conversation_id: currentConvId,
-            merchant_id: currentMerchantId,
+            conversation_id: activeConversationId,
+            merchant_id: activeMerchantId,
             from_role: 'merchant',
             message: text,
-            turn_number: turnCount
+            turn_number: turnIndex
           })
         });
-        const data = await res.json();
 
-        const botMsg = document.createElement('div');
-        botMsg.className = 'msg msg-out';
+        const data = await res.json();
+        const botEl = document.createElement('div');
+        botEl.className = 'convo-msg msg-bot';
 
         if (data.action === 'send') {
-          botMsg.innerHTML = `<div>${data.body.replace(/\\n/g, '<br>')}</div><div class="msg-time">Vera • Action: send</div>`;
+          botEl.innerHTML = `
+            <div class="msg-tag">Vera &bull; Action: SEND</div>
+            <div>${escapeHtml(data.body).replace(/\\n/g, '<br>')}</div>
+          `;
         } else if (data.action === 'wait') {
-          botMsg.innerHTML = `<div><em>[Vera paused for ${data.wait_seconds}s — ${data.rationale}]</em></div><div class="msg-time">Action: wait</div>`;
+          botEl.innerHTML = `
+            <div class="msg-tag">Vera &bull; Action: WAIT (${data.wait_seconds}s)</div>
+            <div style="color: var(--text-muted); font-style: italic;">${escapeHtml(data.rationale)}</div>
+          `;
         } else {
-          botMsg.innerHTML = `<div><em>[Vera closed conversation — ${data.rationale}]</em></div><div class="msg-time">Action: end</div>`;
+          botEl.innerHTML = `
+            <div class="msg-tag">Vera &bull; Action: END</div>
+            <div style="color: var(--text-muted); font-style: italic;">${escapeHtml(data.rationale)}</div>
+          `;
         }
-        chat.appendChild(botMsg);
-        chat.scrollTop = chat.scrollHeight;
-      } catch (e) {
-        console.error(e);
+
+        convo.appendChild(botEl);
+        convo.scrollTop = convo.scrollHeight;
+      } catch (err) {
+        console.error(err);
       }
     }
 
-    loadHealth();
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    refreshHealth();
   </script>
 </body>
 </html>

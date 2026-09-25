@@ -24,10 +24,11 @@ class ConversationState:
 
 class ConversationManager:
     AUTO_REPLY_PATTERNS = [
-        re.compile(r"thank\s+you\s+for\s+contacting", re.IGNORECASE),
+        re.compile(r"thank\s+you\s+for\s+(?:contacting|reaching\s+out|your\s+message)", re.IGNORECASE),
         re.compile(r"automated\s+assistant", re.IGNORECASE),
         re.compile(r"our\s+team\s+will\s+respond\s+shortly", re.IGNORECASE),
         re.compile(r"auto[-\s]?reply", re.IGNORECASE),
+        re.compile(r"automatic\s+reply", re.IGNORECASE),
         re.compile(r"out\s+of\s+office", re.IGNORECASE),
         re.compile(r"currently\s+unavailable", re.IGNORECASE),
         re.compile(r"we\s+have\s+received\s+your\s+message", re.IGNORECASE),
@@ -133,7 +134,7 @@ class ConversationManager:
             conv.last_merchant_message = msg_clean
 
             if conv.auto_reply_count == 1:
-                # Turn 1 auto-reply: Wait 4 hours or send gentle prompt for owner
+                # Turn 1 auto-reply: Wait 4 hours
                 conv.state = "waiting"
                 return {
                     "action": "wait",
@@ -149,11 +150,11 @@ class ConversationManager:
                     "rationale": "Same auto-reply received consecutively. Business owner is currently away; waiting 24 hours.",
                 }
             else:
-                # Turn 3+ auto-reply: End conversation gracefully
+                # Turn 3+ auto-reply: End conversation gracefully to prevent loop
                 conv.state = "closed"
                 return {
                     "action": "end",
-                    "rationale": "Auto-reply received 3+ times in a row with zero human engagement. Closing conversation to respect inbox.",
+                    "rationale": "Repeated auto-reply received with zero human engagement. Closing conversation to prevent inbox spam.",
                 }
 
         conv.last_merchant_message = msg_clean

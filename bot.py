@@ -38,9 +38,13 @@ app.add_middleware(
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         t0 = time.time()
+        METRICS["total_requests"] += 1
         try:
             response = await call_next(request)
             duration_ms = (time.time() - t0) * 1000
+            if len(METRICS["latencies_ms"]) > 1000:
+                METRICS["latencies_ms"].pop(0)
+            METRICS["latencies_ms"].append(duration_ms)
             response.headers["X-Response-Time-Ms"] = f"{duration_ms:.2f}"
             return response
         except Exception as exc:
@@ -63,6 +67,14 @@ validator = OutputValidator()
 conversation_mgr = ConversationManager()
 
 used_suppression_keys: set[str] = set()
+
+# Telemetry counters
+METRICS = {
+    "total_requests": 0,
+    "total_actions": 0,
+    "total_suppressions": 0,
+    "latencies_ms": [],
+}
 
 # Preload dataset if directory exists
 for default_dir in ["expanded", "dataset"]:
@@ -197,6 +209,8 @@ async def tick(body: TickBody):
             "rationale": composed.get("rationale", ""),
         })
 
+    METRICS["total_actions"] += len(actions)
+    METRICS["total_suppressions"] += max(0, len(body.available_triggers) - len(actions))
     return {"actions": actions}
 
 
@@ -223,6 +237,72 @@ async def reply(body: ReplyBody):
     )
 
 
+# Telemetry and Operational Inspection
+@app.get("/v1/metrics")
+async def get_metrics():
+    latencies = METRICS["latencies_ms"]
+    avg_latency = sum(latencies) / len(latencies) if latencies else 0.0
+    p95_latency = sorted(latencies)[int(len(latencies) * 0.95)] if latencies else 0.0
+
+    return {
+        "status": "healthy",
+        "uptime_seconds": int(time.time() - START_TIME),
+        "telemetry": {
+            "total_requests": METRICS["total_requests"],
+            "total_actions_dispatched": METRICS["total_actions"],
+            "total_suppressed_opportunities": METRICS["total_suppressions"],
+            "active_conversations_count": len(conversation_mgr.conversations),
+            "opted_out_merchants_count": len(conversation_mgr.opted_out_merchants),
+            "avg_latency_ms": round(avg_latency, 2),
+            "p95_latency_ms": round(p95_latency, 2),
+        },
+        "context_inventory": store.counts_by_scope(),
+    }
+
+
+# Explainability / Diagnostic Audit Endpoint
+@app.get("/v1/explain")
+async def explain(merchant_id: str, trigger_id: str, simulated_now: Optional[str] = None):
+    now_str = simulated_now or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    merchant = store.get_merchant(merchant_id)
+    trigger = store.get_trigger(trigger_id)
+
+    if not merchant:
+        return {"eligible": False, "reason": f"Merchant {merchant_id} not found in store"}
+    if not trigger:
+        return {"eligible": False, "reason": f"Trigger {trigger_id} not found in store"}
+
+    category_slug = merchant.get("category_slug")
+    category = store.get_category(category_slug) if category_slug else {}
+
+    # Check suppression key
+    candidate_key = trigger.get("suppression_key") or f"{trigger.get('kind')}:{merchant_id}"
+    is_suppressed = candidate_key in used_suppression_keys
+
+    active_count = sum(1 for c in conversation_mgr.conversations.values() if getattr(c, "merchant_id", None) == merchant_id and getattr(c, "state", "") != "ended")
+    passed, rejection_reason = policy.check_eligibility(
+        trigger=trigger,
+        merchant=merchant,
+        category=category,
+        customer=None,
+        simulated_now=now_str,
+        used_suppression_keys=used_suppression_keys,
+        opted_out_merchants=conversation_mgr.opted_out_merchants,
+        active_conversations_for_merchant=active_count,
+    )
+
+    return {
+        "merchant_id": merchant_id,
+        "trigger_id": trigger_id,
+        "category_id": category_slug,
+        "eligible": passed,
+        "rejection_reason": rejection_reason,
+        "suppression_key": candidate_key,
+        "already_suppressed": is_suppressed,
+        "urgency_score": trigger.get("urgency", 0.5),
+    }
+
+
 # Optional teardown endpoint
 @app.post("/v1/teardown")
 async def teardown():
@@ -230,6 +310,10 @@ async def teardown():
     used_suppression_keys.clear()
     conversation_mgr.conversations.clear()
     conversation_mgr.opted_out_merchants.clear()
+    METRICS["total_requests"] = 0
+    METRICS["total_actions"] = 0
+    METRICS["total_suppressions"] = 0
+    METRICS["latencies_ms"].clear()
     return {"status": "ok", "message": "State wiped"}
 
 
