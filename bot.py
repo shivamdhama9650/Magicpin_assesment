@@ -81,6 +81,21 @@ def compose(
     return composer.compose(category, merchant, trigger, customer)
 
 
+from fastapi.responses import HTMLResponse
+from pathlib import Path
+
+DASHBOARD_FILE = Path(__file__).parent / "dashboard.html"
+
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    """Serves the interactive Vera Mission Control dashboard."""
+    if DASHBOARD_FILE.exists():
+        return HTMLResponse(content=DASHBOARD_FILE.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Vera Assistant Live</h1><p><a href='/v1/healthz'>/v1/healthz</a></p>")
+
+
 # Endpoint 1: Healthcheck
 @app.get("/v1/healthz")
 async def healthz():

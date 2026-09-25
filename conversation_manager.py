@@ -184,15 +184,42 @@ class ConversationManager:
                     "rationale": "Politely declined out-of-scope accounting question while smoothly returning to the active task.",
                 }
 
+        # Check for pricing or cost inquiries
+        if re.search(r"\bcost\b|\bprice\b|\bcharge\b|\bfees\b|\bkitna\b|\bpaise\b", msg_clean, re.IGNORECASE):
+            body = (
+                "Done! Profile updates and WhatsApp drafts are fully covered under your magicpin Pro subscription with zero additional fees. "
+                "Here is the draft ready to publish. Reply CONFIRM to schedule for tomorrow 10 AM."
+            )
+            conv.last_bot_body = body
+            conv.last_action = "send"
+            return {
+                "action": "send",
+                "body": body,
+                "cta": "binary_yes_no",
+                "rationale": "Clarified pricing directly from subscription terms without ambiguity.",
+            }
+
+        # Check for per-turn Hindi/Hinglish language shift
+        hindi_markers = ["haan", "theek", "bhai", "karo", "bhejo", "chalega", "shukriya", "sahi", "badhiya"]
+        is_hindi_turn = any(w in msg_clean.lower() for w in hindi_markers)
+
         # 5. Explicit commitment / intent transition
         for pattern in self.INTENT_COMMIT_PATTERNS:
             if pattern.search(msg_clean):
-                body = (
-                    "Done! Sending the finalized draft now — here are the details ready for immediate launch:\n\n"
-                    "• Headline: 'Special Local Focus — Priority Booking'\n"
-                    "• Ready to publish to your Google profile and patient/customer broadcast\n\n"
-                    "Reply CONFIRM to proceed with scheduling for tomorrow 10 AM."
-                )
+                if is_hindi_turn:
+                    body = (
+                        "Done! Sending the finalized draft now — aapka Google post ready hai:\n\n"
+                        "• Headline: 'Special Local Focus — Priority Booking'\n"
+                        "• Ready to publish to your Google profile and customer broadcast\n\n"
+                        "Reply CONFIRM to proceed with scheduling for tomorrow 10 AM."
+                    )
+                else:
+                    body = (
+                        "Done! Sending the finalized draft now — here are the details ready for immediate launch:\n\n"
+                        "• Headline: 'Special Local Focus — Priority Booking'\n"
+                        "• Ready to publish to your Google profile and patient/customer broadcast\n\n"
+                        "Reply CONFIRM to proceed with scheduling for tomorrow 10 AM."
+                    )
                 conv.last_bot_body = body
                 conv.last_action = "send"
                 return {

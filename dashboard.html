@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vera Assistant — Mission Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #10b981;
+      --wa-bg: #0b141a;
+      --wa-bubble: #005c4b;
+      --wa-incoming: #202c33;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 24px; min-height: 100vh; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .title-group h1 { font-size: 22px; font-weight: 700; color: #fff; }
+    .title-group p { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); color: var(--success); border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .stat-card .label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 24px; font-weight: 700; color: #fff; margin-top: 6px; }
+    
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+    
+    .panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; }
+    .panel-header { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+    select, input, textarea { width: 100%; background: #0f172a; border: 1px solid var(--border); color: #fff; padding: 10px 12px; border-radius: 8px; font-size: 14px; outline: none; }
+    select:focus, input:focus { border-color: var(--primary); }
+    
+    .btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #334155; }
+    .btn-secondary:hover { background: #475569; }
+
+    /* WhatsApp Simulator */
+    .wa-container { background: var(--wa-bg); border: 1px solid var(--border); border-radius: 10px; height: 440px; display: flex; flex-direction: column; overflow: hidden; }
+    .wa-header { background: #202c33; padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .wa-avatar { width: 36px; height: 36px; border-radius: 50%; background: #6366f1; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+    .wa-user-info .name { font-size: 14px; font-weight: 600; color: #e9edef; }
+    .wa-user-info .status { font-size: 11px; color: #8696a0; }
+    .wa-chat { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    
+    .msg { max-width: 85%; padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.45; position: relative; word-wrap: break-word; }
+    .msg-out { background: var(--wa-bubble); color: #e9edef; align-self: flex-start; border-top-left-radius: 0; }
+    .msg-in { background: var(--wa-incoming); color: #e9edef; align-self: flex-end; border-top-right-radius: 0; }
+    .msg-time { font-size: 10px; color: rgba(255,255,255,0.6); text-align: right; margin-top: 4px; }
+    
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .chip { font-size: 11px; padding: 5px 10px; border-radius: 999px; background: #1e293b; border: 1px solid var(--border); cursor: pointer; color: var(--text-muted); transition: 0.15s; }
+    .chip:hover { border-color: var(--primary); color: #fff; }
+    
+    .rationale-card { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+    .rationale-card strong { color: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="title-group">
+      <h1>Vera Assistant — Mission Control</h1>
+      <p>magicpin merchant outreach & conversational engine</p>
+    </div>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      <span id="uptime-text">Live on Port 8080</span>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Categories</div>
+      <div class="value" id="count-categories">5</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Merchants</div>
+      <div class="value" id="count-merchants">50</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Customers</div>
+      <div class="value" id="count-customers">200</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Triggers Loaded</div>
+      <div class="value" id="count-triggers">100</div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- Simulator Controls -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Test Message Composer</span>
+      </div>
+
+      <div class="form-group">
+        <label>Merchant Context</label>
+        <select id="merchant-select">
+          <option value="m_001_drmeera_dentist_delhi">Dr. Meera's Dental Clinic (Dentist - Delhi)</option>
+          <option value="m_006_southindiancafe_restaurant_bangalore">Mylari South Indian Cafe (Restaurant - Bangalore)</option>
+          <option value="m_002_studio11_salon_hyderabad">Studio11 Family Salon (Salon - Hyderabad)</option>
+          <option value="m_008_zenyoga_gym_chennai">Zen Yoga Studio (Gym - Chennai)</option>
+          <option value="m_009_apollo_pharmacy_jaipur">Apollo Health Plus Pharmacy (Pharmacy - Jaipur)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Active Trigger Event</label>
+        <select id="trigger-select">
+          <option value="trg_013_corporate_thali_planning">Corporate Thali Planning (active_planning_intent)</option>
+          <option value="trg_001_research_digest_dentists">JIDA Fluoride Recall Trial (research_digest)</option>
+          <option value="trg_003_recall_due_priya">Priya 6-Month Recall (recall_due - Customer)</option>
+          <option value="trg_002_heatwave_delhi">Heatwave / Summer Demand (seasonal)</option>
+          <option value="trg_023_competitor_opened_dentist">Competitor Opened 1.3km Away (competitor_opened)</option>
+        </select>
+      </div>
+
+      <button class="btn" onclick="simulateTick()" style="margin-top: 6px;">Compose Outbound Message</button>
+
+      <div class="rationale-card" id="rationale-box" style="display: none;">
+        <div><strong>Strategy & Compulsion:</strong> <span id="rationale-text"></span></div>
+        <div style="margin-top: 6px;"><strong>Suppression Key:</strong> <code id="supp-key-text" style="color: #38bdf8;"></code></div>
+      </div>
+
+      <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px;">Simulate Merchant Response:</label>
+        <div class="chips">
+          <span class="chip" onclick="quickReply('Ok lets do it. Whats next?')">"Ok lets do it. Whats next?" (Commitment)</span>
+          <span class="chip" onclick="quickReply('Yes please send the abstract')">"Yes send the abstract"</span>
+          <span class="chip" onclick="quickReply('Thank you for contacting us! Our team will respond shortly.')">"Thank you for contacting..." (Auto-reply)</span>
+          <span class="chip" onclick="quickReply('Stop messaging me. This is useless spam.')">"Stop messaging me" (Opt-out)</span>
+          <span class="chip" onclick="quickReply('Can you also help me with my GST filing?')">"Help with GST filing" (Curveball)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WhatsApp Preview -->
+    <div class="panel">
+      <div class="panel-header">
+        <span>Live Conversation Stream</span>
+      </div>
+
+      <div class="wa-container">
+        <div class="wa-header">
+          <div class="wa-avatar">V</div>
+          <div class="wa-user-info">
+            <div class="name" id="wa-merchant-name">Dr. Meera's Dental Clinic</div>
+            <div class="status" id="wa-session-status">24h WhatsApp Session Active</div>
+          </div>
+        </div>
+
+        <div class="wa-chat" id="chat-messages">
+          <div class="msg msg-out">
+            <div>Click <strong>"Compose Outbound Message"</strong> to trigger a proactive conversation based on merchant context and active trigger.</div>
+            <div class="msg-time">Just now</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <input type="text" id="custom-reply-input" placeholder="Type a custom merchant reply...">
+        <button class="btn btn-secondary" onclick="sendCustomReply()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentConvId = "conv_demo_1";
+    let currentMerchantId = "m_001_drmeera_dentist_delhi";
+    let turnCount = 1;
+
+    async function loadHealth() {
+      try {
+        const res = await fetch('/v1/healthz');
+        const data = await res.json();
+        if (data.contexts_loaded) {
+          document.getElementById('count-categories').innerText = data.contexts_loaded.category || 5;
+          document.getElementById('count-merchants').innerText = data.contexts_loaded.merchant || 50;
+          document.getElementById('count-customers').innerText = data.contexts_loaded.customer || 200;
+          document.getElementById('count-triggers').innerText = data.contexts_loaded.trigger || 100;
+        }
+        document.getElementById('uptime-text').innerText = `Uptime: ${data.uptime_seconds}s (Operational)`;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function simulateTick() {
+      const mid = document.getElementById('merchant-select').value;
+      const tid = document.getElementById('trigger-select').value;
+      currentMerchantId = mid;
+      currentConvId = `conv_${mid}_${Date.now() % 10000}`;
+      turnCount = 1;
+
+      document.getElementById('wa-merchant-name').innerText = document.getElementById('merchant-select').selectedOptions[0].text;
+
+      const chat = document.getElementById('chat-messages');
+      chat.innerHTML = '<div style="text-align: center; font-size: 11px; color: #8696a0; margin: 8px 0;">Evaluating trigger eligibility & composing...</div>';
+
+      try {
+        const res = await fetch('/v1/tick', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            now: new Date().toISOString(),
+            available_triggers: [tid]
+          })
+        });
+        const data = await res.json();
+
+        chat.innerHTML = '';
+        if (data.actions && data.actions.length > 0) {
+          const act = data.actions[0];
+          currentConvId = act.conversation_id;
+
+          const msgEl = document.createElement('div');
+          msgEl.className = 'msg msg-out';
+          msgEl.innerHTML = `<div>${act.body.replace(/\\n/g, '<br>')}</div><div class="msg-time">Vera • Just now</div>`;
+          chat.appendChild(msgEl);
+
+          document.getElementById('rationale-box').style.display = 'block';
+          document.getElementById('rationale-text').innerText = act.rationale || 'Fact-anchored category copy.';
+          document.getElementById('supp-key-text').innerText = act.suppression_key || '';
+        } else {
+          chat.innerHTML = '<div class="msg msg-out"><div>Trigger suppressed or filtered by eligibility policy (restraint exercised).</div></div>';
+        }
+      } catch (e) {
+        chat.innerHTML = `<div class="msg msg-out" style="background: #ef4444;">Error: ${e.message}</div>`;
+      }
+    }
+
+    async function quickReply(text) {
+      document.getElementById('custom-reply-input').value = text;
+      sendCustomReply();
+    }
+
+    async function sendCustomReply() {
+      const input = document.getElementById('custom-reply-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      const chat = document.getElementById('chat-messages');
+      const userMsg = document.createElement('div');
+      userMsg.className = 'msg msg-in';
+      userMsg.innerHTML = `<div>${text}</div><div class="msg-time">Merchant • Just now</div>`;
+      chat.appendChild(userMsg);
+      chat.scrollTop = chat.scrollHeight;
+
+      turnCount++;
+
+      try {
+        const res = await fetch('/v1/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversation_id: currentConvId,
+            merchant_id: currentMerchantId,
+            from_role: 'merchant',
+            message: text,
+            turn_number: turnCount
+          })
+        });
+        const data = await res.json();
+
+        const botMsg = document.createElement('div');
+        botMsg.className = 'msg msg-out';
+
+        if (data.action === 'send') {
+          botMsg.innerHTML = `<div>${data.body.replace(/\\n/g, '<br>')}</div><div class="msg-time">Vera • Action: send</div>`;
+        } else if (data.action === 'wait') {
+          botMsg.innerHTML = `<div><em>[Vera paused for ${data.wait_seconds}s — ${data.rationale}]</em></div><div class="msg-time">Action: wait</div>`;
+        } else {
+          botMsg.innerHTML = `<div><em>[Vera closed conversation — ${data.rationale}]</em></div><div class="msg-time">Action: end</div>`;
+        }
+        chat.appendChild(botMsg);
+        chat.scrollTop = chat.scrollHeight;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    loadHealth();
+  </script>
+</body>
+</html>
