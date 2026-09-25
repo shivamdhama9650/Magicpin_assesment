@@ -1,4 +1,4 @@
-# Production multi-stage Dockerfile for Vera AI Assistant
+# Production multi-stage Dockerfile for Vera Service
 FROM python:3.11-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \

@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python dataset/generate_dataset.py --seed-dir dataset --out expanded && uvicorn bot:app --host 0.0.0.0 --port $PORT",
+    "startCommand": "uvicorn bot:app --host 0.0.0.0 --port $PORT",
     "healthcheckPath": "/v1/healthz",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",
