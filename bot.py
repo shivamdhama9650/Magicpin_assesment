@@ -303,7 +303,6 @@ async def explain(merchant_id: str, trigger_id: str, simulated_now: Optional[str
     }
 
 
-# Optional teardown endpoint
 @app.post("/v1/teardown")
 async def teardown():
     store.clear()
@@ -314,7 +313,11 @@ async def teardown():
     METRICS["total_actions"] = 0
     METRICS["total_suppressions"] = 0
     METRICS["latencies_ms"].clear()
-    return {"status": "ok", "message": "State wiped"}
+    for default_dir in ["expanded", "dataset"]:
+        if os.path.isdir(default_dir):
+            store.load_from_directory(default_dir)
+            break
+    return {"status": "ok", "message": "State reset"}
 
 
 if __name__ == "__main__":
