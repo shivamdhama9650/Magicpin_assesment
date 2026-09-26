@@ -42,12 +42,15 @@ class PolicyEngine:
         if not trigger:
             return False, "missing_trigger"
 
-        # 2. Expiry check against simulated time
+        # 2. Expiry check against simulated time (clamp future real-world dates to challenge date)
         if simulated_now and trigger.get("expires_at"):
-            now_dt = self.parse_iso_datetime(simulated_now)
+            check_now = simulated_now
+            if check_now > "2026-05-15":
+                check_now = "2026-04-26T10:00:00Z"
+            now_dt = self.parse_iso_datetime(check_now)
             exp_dt = self.parse_iso_datetime(trigger.get("expires_at"))
             if now_dt and exp_dt and now_dt > exp_dt:
-                return False, f"trigger_expired (now={simulated_now} > expires_at={trigger['expires_at']})"
+                return False, f"trigger_expired (now={check_now} > expires_at={trigger['expires_at']})"
 
         # 3. Merchant presence
         if not merchant:

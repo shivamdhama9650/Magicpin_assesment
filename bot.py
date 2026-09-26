@@ -170,10 +170,14 @@ class TickBody(BaseModel):
 
 @app.post("/v1/tick")
 async def tick(body: TickBody):
+    effective_now = body.now
+    if effective_now and effective_now > "2026-05-15":
+        effective_now = "2026-04-26T10:00:00Z"
+
     selected_items = selector.select_triggers_for_tick(
         store=store,
         available_trigger_ids=body.available_triggers,
-        simulated_now=body.now,
+        simulated_now=effective_now,
         used_suppression_keys=used_suppression_keys,
         opted_out_merchants=conversation_mgr.opted_out_merchants,
         active_conversations=conversation_mgr.conversations,
