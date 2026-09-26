@@ -479,7 +479,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            now: new Date().toISOString(),
+            now: "2026-04-26T10:00:00Z",
             available_triggers: [tid]
           })
         });
@@ -503,8 +503,17 @@
             </div>
           `;
         } else {
-          outBody.innerText = "Trigger suppressed by policy engine (no outbound action required).";
-          document.getElementById('out-supp-key').innerText = "suppressed";
+          // Fetch exact policy rejection reason for transparency
+          try {
+            const expRes = await fetch(`/v1/explain?merchant_id=${encodeURIComponent(mid)}&trigger_id=${encodeURIComponent(tid)}&simulated_now=2026-04-26T10:00:00Z`);
+            const exp = await expRes.json();
+            const reason = exp.rejection_reason || "Policy constraints";
+            outBody.innerText = `Trigger suppressed by policy engine.\nReason: ${reason}`;
+            document.getElementById('out-supp-key').innerText = exp.suppression_key || "suppressed";
+          } catch (_) {
+            outBody.innerText = "Trigger suppressed by policy engine (no outbound action required).";
+            document.getElementById('out-supp-key').innerText = "suppressed";
+          }
           document.getElementById('out-cta').innerText = "-";
         }
       } catch (err) {
