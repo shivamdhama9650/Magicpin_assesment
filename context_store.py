@@ -30,8 +30,9 @@ class ContextStore:
         
         Rules:
         - Scope must be one of: "category", "merchant", "customer", "trigger"
-        - If current_version >= version: rejected with 409 stale_version
-        - If new or higher version: accepted with 200, replaces old payload atomically
+        - If current_version > version: rejected with 409 stale_version
+        - If current_version == version: idempotent no-op, accepted with 200
+        - If higher version or new: accepted with 200, replaces old payload atomically
         """
         valid_scopes = {"category", "merchant", "customer", "trigger"}
         if scope not in valid_scopes:
@@ -45,19 +46,31 @@ class ContextStore:
             key = (scope, context_id)
             current = self._store.get(key)
 
-            if current is not None and current["version"] >= version:
+            if current is not None and current["version"] > version:
                 return (
                     False,
                     {
                         "accepted": False,
                         "reason": "stale_version",
                         "current_version": current["version"],
-                        "details": f"Stored version {current['version']} is >= provided version {version}",
+                        "details": f"Stored version {current['version']} is > provided version {version}",
                     },
                     409,
                 )
 
             stored_at = datetime.utcnow().isoformat() + "Z"
+            if current is not None and current["version"] == version:
+                # Idempotent no-op per challenge testing brief §2.1
+                return (
+                    True,
+                    {
+                        "accepted": True,
+                        "ack_id": f"ack_{context_id}_v{version}",
+                        "stored_at": current.get("stored_at", stored_at),
+                        "idempotent": True,
+                    },
+                    200,
+                )
             self._store[key] = {
                 "version": version,
                 "payload": payload,

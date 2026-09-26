@@ -452,10 +452,10 @@
         const res = await fetch('/v1/healthz');
         const data = await res.json();
         if (data.contexts_loaded) {
-          document.getElementById('cnt-categories').innerText = data.contexts_loaded.category || 5;
-          document.getElementById('cnt-merchants').innerText = data.contexts_loaded.merchant || 50;
-          document.getElementById('cnt-customers').innerText = data.contexts_loaded.customer || 200;
-          document.getElementById('cnt-triggers').innerText = data.contexts_loaded.trigger || 100;
+          document.getElementById('cnt-categories').innerText = data.contexts_loaded.category ?? 0;
+          document.getElementById('cnt-merchants').innerText = data.contexts_loaded.merchant ?? 0;
+          document.getElementById('cnt-customers').innerText = data.contexts_loaded.customer ?? 0;
+          document.getElementById('cnt-triggers').innerText = data.contexts_loaded.trigger ?? 0;
         }
         document.getElementById('sys-uptime').innerText = `UPTIME: ${data.uptime_seconds}s (HEALTHY)`;
       } catch (err) {

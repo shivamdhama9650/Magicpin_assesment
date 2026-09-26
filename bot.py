@@ -76,11 +76,18 @@ METRICS = {
     "latencies_ms": [],
 }
 
-# Preload dataset if directory exists
-for default_dir in ["expanded", "dataset"]:
-    if os.path.isdir(default_dir):
-        store.load_from_directory(default_dir)
-        break
+from pathlib import Path
+
+BASE_DIR = Path(__file__).parent
+
+def load_initial_contexts():
+    for default_dir in [BASE_DIR / "expanded", BASE_DIR / "dataset"]:
+        if default_dir.is_dir():
+            store.load_from_directory(str(default_dir))
+            break
+
+# Preload dataset on startup
+load_initial_contexts()
 
 
 def compose(
@@ -313,11 +320,12 @@ async def teardown():
     METRICS["total_actions"] = 0
     METRICS["total_suppressions"] = 0
     METRICS["latencies_ms"].clear()
-    for default_dir in ["expanded", "dataset"]:
-        if os.path.isdir(default_dir):
-            store.load_from_directory(default_dir)
-            break
-    return {"status": "ok", "message": "State reset"}
+    load_initial_contexts()
+    return {
+        "status": "ok",
+        "message": "State reset",
+        "contexts_loaded": store.counts_by_scope(),
+    }
 
 
 if __name__ == "__main__":

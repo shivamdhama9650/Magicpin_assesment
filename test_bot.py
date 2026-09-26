@@ -28,7 +28,7 @@ def test_metadata():
 
 
 def test_context_push_and_versioning():
-    # Push version 1
+    # Push version 1 -> 200
     resp1 = client.post("/v1/context", json={
         "scope": "category",
         "context_id": "test_cat",
@@ -38,16 +38,15 @@ def test_context_push_and_versioning():
     assert resp1.status_code == 200
     assert resp1.json()["accepted"] is True
 
-    # Push version 1 again -> 409 stale_version
+    # Re-posting same version 1 -> 200 (idempotent no-op per challenge brief §2.1)
     resp2 = client.post("/v1/context", json={
         "scope": "category",
         "context_id": "test_cat",
         "version": 1,
         "payload": {"slug": "test_cat", "display_name": "Test"}
     })
-    assert resp2.status_code == 409
-    assert resp2.json()["accepted"] is False
-    assert resp2.json()["reason"] == "stale_version"
+    assert resp2.status_code == 200
+    assert resp2.json()["accepted"] is True
 
     # Push version 2 -> replaces atomically 200
     resp3 = client.post("/v1/context", json={
@@ -58,6 +57,18 @@ def test_context_push_and_versioning():
     })
     assert resp3.status_code == 200
     assert resp3.json()["accepted"] is True
+
+    # Push lower version 1 when version 2 exists -> 409 stale_version
+    resp4 = client.post("/v1/context", json={
+        "scope": "category",
+        "context_id": "test_cat",
+        "version": 1,
+        "payload": {"slug": "test_cat", "display_name": "Test Stale"}
+    })
+    assert resp4.status_code == 409
+    assert resp4.json()["accepted"] is False
+    assert resp4.json()["reason"] == "stale_version"
+    assert resp4.json()["current_version"] == 2
     print("[PASS] POST /v1/context idempotency and version bump passed")
 
 

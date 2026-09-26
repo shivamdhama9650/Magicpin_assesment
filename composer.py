@@ -172,24 +172,57 @@ class Composer:
             if not item and digest_items:
                 item = digest_items[0]
 
-            source = item.get("source", "JIDA Oct 2026, p.14") if item else "JIDA Oct 2026, p.14"
-            title = item.get("title", "3-month fluoride recall outperforms 6-month for high-risk adult caries") if item else ""
-            trial_n = item.get("trial_n", 2100) if item else 2100
+            source = item.get("source", "industry research") if item else "industry research"
+            title = item.get("title", "Clinical & industry update") if item else "Clinical & industry update"
+            trial_n = item.get("trial_n") if item else None
 
             salutation = f"Dr. {owner_name}" if cat_slug == "dentists" else f"Hi {owner_name}"
-            body = (
-                f"{salutation}, JIDA's Oct issue landed. One item relevant to your high-risk adult patients — "
-                f"{trial_n:,}-patient trial showed 3-month fluoride recall cuts caries recurrence 38% better than 6-month. "
-                f"Worth a look (2-min abstract). Want me to pull it + draft a patient-ed WhatsApp you can share? — {source}"
-            )
+
+            if cat_slug == "dentists":
+                if trial_n:
+                    body = (
+                        f"{salutation}, JIDA's Oct issue landed. One item relevant to your high-risk adult patients — "
+                        f"{trial_n:,}-patient trial showed 3-month fluoride recall cuts caries recurrence 38% better than 6-month. "
+                        f"Worth a look (2-min abstract). Want me to pull it + draft a patient-ed WhatsApp you can share? — {source}"
+                    )
+                else:
+                    body = (
+                        f"{salutation}, new clinical update landed ({source}): '{title}'. "
+                        f"Worth a look (2-min read). Want me to pull the abstract and draft an educational WhatsApp message you can share with patients? Reply YES."
+                    )
+            elif cat_slug == "gyms":
+                body = (
+                    f"Hi {owner_name}, new fitness industry report landed ({source}): '{title}'. "
+                    f"Relevant to member retention and inquiry patterns in {city}. "
+                    f"Want me to summarize the key takeaways and draft an offer around this for {biz_name}? Reply YES."
+                )
+            elif cat_slug == "salons":
+                body = (
+                    f"Hi {owner_name}, latest salon trend digest just dropped ({source}): '{title}'. "
+                    f"Client demand in {locality} is shifting towards these treatments. "
+                    f"Want me to draft a high-CTR promotional post featuring your '{active_offer_title or 'treatments'}'? Reply YES."
+                )
+            elif cat_slug == "pharmacies":
+                body = (
+                    f"Hi {owner_name}, new healthcare advisory alert ({source}): '{title}'. "
+                    f"Essential for patient adherence and prescription refill management in {locality}. "
+                    f"Want me to draft an informative update for your customer broadcast list? Reply YES."
+                )
+            else:
+                body = (
+                    f"Hi {owner_name}, new local industry digest landed ({source}): '{title}'. "
+                    f"Helpful insights for {biz_name} to capture customer demand this week. "
+                    f"Want me to draft an update post for Google Business? Reply YES."
+                )
+
             return {
                 "body": body,
-                "cta": "open_ended",
+                "cta": "open_ended" if (cat_slug == "dentists" and trial_n) else "binary_yes_no",
                 "send_as": "vera",
                 "suppression_key": suppression_key,
-                "rationale": "External research digest with merchant-relevant clinical anchor, trial metrics, source citation, and open-ended CTA.",
-                "template_name": "vera_research_digest_v1",
-                "template_params": [salutation, "JIDA Oct issue", str(trial_n), source],
+                "rationale": f"External research digest tailored to {cat_slug} anchored on source citation '{source}' and title.",
+                "template_name": f"vera_research_digest_{cat_slug}_v1",
+                "template_params": [salutation, title, source],
             }
 
         # B. Active Planning Intent (Follow up on explicit merchant interest)
@@ -437,12 +470,22 @@ class Composer:
                 "template_params": [owner_name, biz_name],
             }
 
-        # General Grounded Fallback
+        # General Grounded Fallback (Handles adaptive Phase 3 triggers dynamically)
         salutation = f"Dr. {owner_name}" if cat_slug == "dentists" else f"Hi {owner_name}"
+        dynamic_topic = (
+            payload.get("topic")
+            or payload.get("headline")
+            or payload.get("event")
+            or payload.get("festival")
+            or payload.get("metric_or_topic")
+            or kind.replace("_", " ")
+        )
+        stat_mention = payload.get("stat") or payload.get("delta") or f"{views:,} views in the last 30 days"
+
         body = (
-            f"{salutation}, Vera here. Quick update for {biz_name} in {locality}: "
-            f"your profile reached {views:,} views in the last 30 days. "
-            f"I have prepared a high-visibility Google update featuring your '{active_offer_title or 'services'}'. "
+            f"{salutation}, Vera here. Quick heads-up on {dynamic_topic} for {biz_name} in {locality}: "
+            f"your profile reached {stat_mention}. "
+            f"I have prepared a high-visibility update featuring your '{active_offer_title or 'special package'}'. "
             f"Want me to schedule it for tomorrow 10 AM? Reply YES."
         )
         return {
@@ -450,7 +493,7 @@ class Composer:
             "cta": "binary_yes_no",
             "send_as": "vera",
             "suppression_key": suppression_key,
-            "rationale": f"Reliable grounded engagement for {kind} anchored on verifiable merchant metrics.",
-            "template_name": f"vera_{cat_slug}_general_v1",
+            "rationale": f"Adaptive grounded engagement for '{kind}' anchored on topic '{dynamic_topic}' and verifiable metrics.",
+            "template_name": f"vera_{cat_slug}_adaptive_v1",
             "template_params": [salutation, biz_name, str(views)],
         }
